@@ -1,5 +1,5 @@
 # utils/layer_processing.py
-
+from qgis.utils import iface
 import os
 from qgis.core import (
     QgsProject,   QgsCoordinateReferenceSystem,
@@ -15,6 +15,26 @@ def timed_run(name, algorithm_id, parameters):
     end = time.time()
     print(f"[{name}] time used: {end - start:.2f} seconds")
     return result
+
+# Added in v2.0 
+def _simplify_and_smooth(layer, crsValue):
+    simplified = timed_run("Simplify", "native:simplifygeometries", {
+        'INPUT': layer,
+        'METHOD': 0,
+        'TOLERANCE': 0.1,
+        'OUTPUT': 'TEMPORARY_OUTPUT'
+    })['OUTPUT']
+    simplified.setCrs(QgsCoordinateReferenceSystem(crsValue))
+
+    smoothed = timed_run("Smooth", "native:smoothgeometry", {
+        'INPUT': simplified,
+        'ITERATIONS': 1,
+        'OFFSET': 0.5,
+        'MAX_ANGLE': 180,
+        'OUTPUT': 'TEMPORARY_OUTPUT'
+    })['OUTPUT']
+    smoothed.setCrs(QgsCoordinateReferenceSystem(crsValue))
+    return smoothed
 
 def process_pixel(raster_layer,  value_exp, area_exp, crsValue, disturbance = ''):
     if QgsApplication.processingRegistry().algorithmById('gdal:polygonize'):
@@ -135,7 +155,8 @@ def process_pixel(raster_layer,  value_exp, area_exp, crsValue, disturbance = ''
         with edit(filtered_polygon):
             filtered_polygon.dataProvider().deleteFeatures(filtered_polygon.selectedFeatureIds())
 
-        
+        filtered_polygon = _simplify_and_smooth(filtered_polygon, crsValue)
+        disturbance_polygon = _simplify_and_smooth(disturbance_polygon, crsValue)
     
         
 
@@ -144,17 +165,7 @@ def process_pixel(raster_layer,  value_exp, area_exp, crsValue, disturbance = ''
 
 
     else:
+        filtered_polygon = _simplify_and_smooth(filtered_polygon, crsValue)
         return filtered_polygon
 
-
-def tidy_points(filtered_polygon):
-    # create centriod for the point layer
-    
-    centroid =  processing.run("native:centroids", {
-        'INPUT':filtered_polygon,
-        'ALL_PARTS':False,
-        'OUTPUT':'TEMPORARY_OUTPUT'})['OUTPUT']
-
-   
-    return centroid
 

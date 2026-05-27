@@ -5,8 +5,8 @@
 [general]
 name=HA-Geophys Interpretation
 qgisMinimumVersion=3.0
-description=This plugin can help digitise pixels data to polygon and points.
-version=0.1
+description=This plugin helps digitise greyscale pixel data into vector polygons. Supports PNG and TIFF input, with separate parameters for feature polygons and edge disturbance detection.
+version=2.0
 author=Lei Ding
 email=lei.ding@headlandarchaeology.com
 
@@ -20,8 +20,18 @@ repository=http://repo
 
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
-# changelog=[1.1] add parameter for change the default map theme to other EPSG value to adapt to Irish project
-
+changelog=
+    2.0
+        - Removed point (ferrous object) creation as it was unreliable for greyscale-based detection
+        - Removed geology overlap checkbox as it was dependent on point layer
+        - Renamed "Point Parameter" to "Edge Disturbance Parameter" in UI for clarity
+        - Edge disturbance polygon now uses its own dedicated pixel value range, separate from main polygon parameters
+        - Added Simplify (Tolerance=0.1) and Smooth (Iterations=1, Offset=0.5) to all polygon outputs for cleaner edges
+        - Default Minimum Area size changed to 5
+    1.1 
+        - add parameter for change the default map theme to other EPSG value to adapt to Irish project
+    1.0
+        - Initial release: pixel-to-polygon extraction from greyscale raster (PNG and TIFF)
 # Tags are comma separated with spaces allowed
 tags=python
 
