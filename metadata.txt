@@ -12,8 +12,8 @@ email=lei.ding@headlandarchaeology.com
 
 about=This plugin can help digitise pixels data to polygon and points.
 
-tracker=http://bugs
-repository=http://repo
+tracker=https://github.com/LeiHeadlandArc/ha_Geophys_Interpretation/issues
+repository=https://github.com/LeiHeadlandArc/ha_Geophys_Interpretation
 # End of mandatory metadata
 
 # Recommended items:
@@ -21,6 +21,8 @@ repository=http://repo
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
+    2.1 
+        - Added edge snapping: polygons within 0.7m (maximum gap found in test dataset) of Survey Extent boundary are buffered (0.7m) and clipped back to Survey Extent, ensuring clean snapping along the survey edge
     2.0
         - Removed point (ferrous object) creation as it was unreliable for greyscale-based detection
         - Removed geology overlap checkbox as it was dependent on point layer
@@ -35,7 +37,7 @@ changelog=
 # Tags are comma separated with spaces allowed
 tags=python
 
-homepage=http://homepage
+homepage=https://github.com/LeiHeadlandArc/ha_Geophys_Interpretation
 category=Plugins
 icon=icon.png
 # experimental flag

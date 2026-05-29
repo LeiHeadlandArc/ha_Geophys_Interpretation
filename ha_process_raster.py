@@ -36,6 +36,60 @@ def _simplify_and_smooth(layer, crsValue):
     smoothed.setCrs(QgsCoordinateReferenceSystem(crsValue))
     return smoothed
 
+# Added in v2.2
+def _clip_to_survey_extent(smoothed_layer, crsValue):
+    extent_layers = QgsProject.instance().mapLayersByName("Survey Extent")
+    if not extent_layers:
+        raise QgsProcessingException("Layer 'Survey Extent' not found.")
+    extent_layer = extent_layers[0]
+
+    touching_edge = timed_run("Extract within distance", "native:extractwithindistance", {
+        'INPUT': smoothed_layer,
+        'REFERENCE': extent_layer,
+        'DISTANCE': 1,
+        'OUTPUT': 'TEMPORARY_OUTPUT'
+    })['OUTPUT']
+
+    if touching_edge.featureCount() == 0:
+        return smoothed_layer
+
+    touching_buffered = timed_run("Buffer touching features", "native:buffer", {
+        'INPUT': touching_edge,
+        'DISTANCE': 0.7,
+        'SEGMENTS': 5,
+        'END_CAP_STYLE': 0,
+        'JOIN_STYLE': 0,
+        'MITER_LIMIT': 2,
+        'DISSOLVE': False,
+        'OUTPUT': 'TEMPORARY_OUTPUT'
+    })['OUTPUT']
+    touching_buffered.setCrs(QgsCoordinateReferenceSystem(crsValue))
+
+
+    clipped = timed_run("Clip to Survey Extent", "native:clip", {
+        'INPUT': touching_buffered,
+        'OVERLAY': extent_layer,
+        'OUTPUT': 'TEMPORARY_OUTPUT'
+    })['OUTPUT']
+    clipped.setCrs(QgsCoordinateReferenceSystem(crsValue))
+
+
+    touching_ids = [f.id() for f in touching_edge.getFeatures()]
+    smoothed_layer.startEditing()
+    smoothed_layer.dataProvider().deleteFeatures(touching_ids)
+    smoothed_layer.commitChanges()
+
+
+    merged = timed_run("Merge back", "native:mergevectorlayers", {
+        'LAYERS': [smoothed_layer, clipped],
+        'CRS': QgsCoordinateReferenceSystem(crsValue),
+        'OUTPUT': 'TEMPORARY_OUTPUT'
+    })['OUTPUT']
+    merged.setCrs(QgsCoordinateReferenceSystem(crsValue))
+
+    return merged
+
+
 def process_pixel(raster_layer,  value_exp, area_exp, crsValue, disturbance = ''):
     if QgsApplication.processingRegistry().algorithmById('gdal:polygonize'):
         # Use GDAL if available
@@ -156,9 +210,9 @@ def process_pixel(raster_layer,  value_exp, area_exp, crsValue, disturbance = ''
             filtered_polygon.dataProvider().deleteFeatures(filtered_polygon.selectedFeatureIds())
 
         filtered_polygon = _simplify_and_smooth(filtered_polygon, crsValue)
+        filtered_polygon = _clip_to_survey_extent(filtered_polygon, crsValue) # Added in v2.2
         disturbance_polygon = _simplify_and_smooth(disturbance_polygon, crsValue)
-    
-        
+        disturbance_polygon = _clip_to_survey_extent(disturbance_polygon, crsValue) # Added in v2.2
 
 
         return filtered_polygon, disturbance_polygon
